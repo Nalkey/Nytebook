@@ -1,0 +1,74 @@
+单写一个依赖文件dependencies.gradle，然后在项目的build.gradle第一行写
+apply from: "dependencies.gradle"
+
+模块化开发：
+
+1.划分：分层 -> 分模块
+2.在gradle.properties中定义变量isDebug
+isDebug=false
+  TRUE：Debug版本，模块可以单独运行
+  FALSE：RELEASE版本，模块需要APP引入才能运行
+3.在模块的build.gradle中，决定模块能否单独运行
+if (isDebug.toBoolean()) {
+    apply plugin: 'com.android.library'
+} else {
+    apply plugin: 'com.android.application'
+}
+4.由于模块需要指定启动的Activity才能单独跑起来，需要提供两套AndroidManifest.xml
+main文件夹下建debug和release文件夹，各有一个AndroidManifest.xml
+并在模块的build.gradle的android块下加入
+sourceSets {
+    main {
+        if (isDebug.toBoolean()) {
+            manifest.srcFile 'src/main/debug/AndroidManifest.xml'
+        } else {
+            manifest.srcFile 'src/main/release/AndroidManifest.xml'
+        }
+    }
+}
+5.AndroidManifest.xml的区别：
+debug版本：
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.baronzhang.android.newhouse">
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/new_house_ic_launcher"
+        android:label="@string/new_house_app_name"
+        android:supportsRtl="true"
+        android:theme="@style/NewHouseAppTheme">
+        <activity
+            android:name="com.baronzhang.android.newhouse.NewHouseMainActivity"
+            android:label="@string/new_house_label_home_page">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>
+release版本：
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.baronzhang.android.newhouse">
+    <application
+        android:allowBackup="true"
+        android:supportsRtl="true">
+        <activity
+            android:name="com.baronzhang.android.newhouse.NewHouseMainActivity"
+            tools:replace="label"
+            android:label="@string/new_house_label_home_page">
+        </activity>
+    </application>
+</manifest>
+6.配置依赖：主模块的build.gradle文件
+if (isDebug.toBoolean()) { // 下层模块
+        compile project(':CoreModel')
+        compile project(':CommonBusiness')
+    } else { // 同级模块
+        compile project(':InstantMessagingModule')
+        compile project(':NewHouseModule')
+        compile project(':SecondHouseModule')
+    }
+7.配置路由跳转：debug如果有需求跳转其他模块，需要ARouter
